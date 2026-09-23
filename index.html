@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Azure Dreams — Traducción al español</title>
+<meta name="description" content="Progreso de la traducción al español de Azure Dreams de la versión de (PlayStation, USA).">
+<style>
+  :root{ --bg:#14181f; --panel:#1c222c; --line:#2c3543; --text:#e6e9ee; --dim:#8f99a8; --accent:#e8542a; --ok:#5fd35a; }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; color:#fff; font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:
+      radial-gradient(ellipse 260px 60px at 15% 120px,rgba(255,255,255,.85) 60%,transparent 62%),
+      radial-gradient(ellipse 200px 46px at 82% 220px,rgba(255,255,255,.7) 60%,transparent 62%),
+      radial-gradient(ellipse 320px 70px at 60% 60px,rgba(255,255,255,.6) 60%,transparent 62%),
+      linear-gradient(180deg,#2a7fd0 0,#6fb9ee 300px,#dff1ff 560px,#e6cf98 700px,#d3b070 1200px,#bd964f 100%);
+    background-attachment:scroll;
+  }
+  main{max-width:720px; margin:0 auto; padding:40px 20px 60px}
+  header{text-align:center; margin-bottom:36px}
+  header img{width:100%; max-width:520px; height:auto; filter:drop-shadow(0 4px 6px rgba(0,0,0,.35))}
+  header p{margin:10px 0 0; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  /* placa con nombre, como en los diálogos */
+  h2{
+    display:inline-block; margin:36px 0 -1px 18px; padding:3px 18px; position:relative; z-index:1;
+    font:700 14px/1.6 Georgia,serif; letter-spacing:.1em; text-transform:uppercase; color:#fff;
+    background:linear-gradient(#2f5a86,#1b3557); border:2px solid #e2c27a; border-bottom:0; border-radius:6px 6px 0 0;
+  }
+  /* cuadro de texto del juego */
+  .box{
+    position:relative; padding:20px 22px 22px 34px; border-radius:8px;
+    background:linear-gradient(180deg,rgba(104,148,178,.92),rgba(58,100,132,.94) 40%,rgba(40,76,106,.96));
+    border:3px solid #e2c27a; outline:2px solid #7a5a2c; outline-offset:-7px;
+    box-shadow:0 6px 16px rgba(0,0,0,.35), inset 0 0 18px rgba(0,0,0,.25);
+    text-shadow:0 1px 2px rgba(0,0,0,.5);
+  }
+  .box::before{ /* tubería de bronce */
+    content:""; position:absolute; left:8px; top:14px; bottom:14px; width:8px; border-radius:4px;
+    background:linear-gradient(90deg,#5b3812,#d9963f 45%,#b7772f 60%,#5b3812);
+  }
+  .box::after{ /* triangulito de "siguiente" */
+    content:""; position:absolute; right:14px; bottom:9px; border:7px solid transparent; border-top:10px solid #e2c27a; border-bottom:0;
+  }
+  .total{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:8px}
+  .total b{font-size:40px; line-height:1}
+  .total span{color:#dbe9f5}
+  .bar{height:12px; background:#12263c; border:2px solid #e2c27a; border-radius:7px; overflow:hidden}
+  .bar i{display:block; height:100%; width:0; background:linear-gradient(#a6f28f,#38a83a); transition:width 1s ease}
+  .row{margin-top:18px}
+  .row div.h{display:flex; justify-content:space-between; gap:10px; font-size:15px; margin-bottom:5px}
+  .row small{color:#dbe9f5}
+  table{width:100%; border-collapse:collapse}
+  td{padding:6px 0; border-bottom:1px solid rgba(226,194,122,.35)}
+  tr:last-child td{border:0}
+  td:first-child{color:#f1dca6; width:40%}
+  .btn{display:inline-block; background:linear-gradient(#f08a3c,#c9531a); color:#fff; text-decoration:none; padding:12px 22px; border:2px solid #e2c27a; border-radius:6px; font-weight:700; margin-bottom:16px}
+  .btn:hover{filter:brightness(1.1)}
+  ol{margin:8px 0 0; padding-left:22px}
+  footer{margin-top:40px; text-align:center; color:#3b2a14; font-size:13px}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="logo.webp" alt="Azure Dreams">
+    <p>Traducción al español por Fveralv</p>
+  </header>
+
+  <section id="progreso">
+    <h2>Progreso</h2>
+    <div class="box">
+      <div class="total"><b id="totPct">0 %</b><span><span id="totNum"></span> / <span id="totAll"></span> textos</span></div>
+      <div class="bar"><i id="totBar"></i></div>
+      <div id="areas"></div>
+    </div>
+  </section>
+
+  <section id="parche">
+    <h2>Parche</h2>
+    <div class="box">
+      <a class="btn" href="AzureDreams_ES.ppf" download>Descargar AzureDreams_ES.ppf</a>
+      <table>
+        <tr><td>Versión</td><td>Beta 1</td></tr>
+        <tr><td>Actualizado</td><td>23/09/2026</td></tr>
+        <tr><td>Tamaño</td><td>640 KB</td></tr>
+        <tr><td>Formato</td><td>PPF 3.0</td></tr>
+        <tr><td>Juego original</td><td>Azure Dreams (USA) · SLUS-006.14</td></tr>
+      </table>
+      <ol>
+        <li>Ten a mano tu imagen original del juego (.bin).</li>
+        <li>Aplica el parche con PPF-O-Matic o similar.</li>
+        <li>Juega la copia parcheada.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>Proyecto de aficionados sin ánimo de lucro. No se distribuye el juego. Azure Dreams es marca de sus respectivos propietarios.</footer>
+</main>
+
+<script>
+  const DATA = {
+    areas: [
+      { name: "Hitoria en el pueblo", done: 2784, total: 3063, text: true },
+      { name: "La Torre",            done: 579,  total: 1016, text: true },
+      { name: "Menús y sistema",     done: 654,  total: 1003, text: true },
+      { name: "Objetos",             done: 229,  total: 259,  text: false },
+      { name: "Caracteres especiales",             done: 0,  total: 0,  text: false },
+      { name: "Elementos visuales",             done: 0,  total: 0,  text: false },
+      { name: "Subtitulos de los videos",             done: 0,  total: 0,  text: false }
+    ]
+  };
+  const fmt = n => n.toLocaleString("es-ES");
+  const pct = (a,b) => Math.round(a*100/b);
+
+  const t = DATA.areas.filter(a=>a.text);
+  const d = t.reduce((s,a)=>s+a.done,0), all = t.reduce((s,a)=>s+a.total,0);
+  document.getElementById("totPct").textContent = pct(d,all) + " %";
+  document.getElementById("totNum").textContent = fmt(d);
+  document.getElementById("totAll").textContent = fmt(all);
+
+  const box = document.getElementById("areas");
+  const bars = [document.getElementById("totBar")];
+  const vals = [pct(d,all)];
+  DATA.areas.forEach(a=>{
+    const p = pct(a.done,a.total);
+    const r = document.createElement("div"); r.className = "row";
+    r.innerHTML = '<div class="h"><span>'+a.name+'</span><small>'+fmt(a.done)+' / '+fmt(a.total)+' · '+p+' %</small></div><div class="bar"><i></i></div>';
+    box.appendChild(r);
+    bars.push(r.querySelector("i")); vals.push(p);
+  });
+  requestAnimationFrame(()=>setTimeout(()=>bars.forEach((b,i)=>b.style.width=vals[i]+"%"),50));
+</script>
+</body>
+</html>
