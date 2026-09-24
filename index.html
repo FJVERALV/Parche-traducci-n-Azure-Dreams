@@ -42,6 +42,22 @@
   .box::after{ /* triangulito de "siguiente" */
     content:""; position:absolute; right:14px; bottom:9px; border:7px solid transparent; border-top:10px solid #e2c27a; border-bottom:0;
   }
+
+  .shots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Crea 2 columnas del mismo tamaño */
+  gap: 16px;
+  margin: 10px auto 0; /* Ajustado para que encaje bien en .box */
+  max-width: 760px;
+  }
+  .shot{position:relative;margin:0;aspect-ratio:10/7;overflow:hidden;border-radius:6px;
+    background:linear-gradient(180deg,var(--box1),var(--box2));border:3px solid var(--boxline);
+    box-shadow:0 0 0 2px rgba(226,194,122,.35) inset,0 14px 32px rgba(0,0,0,.45)}
+  .shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
+  .shot .empty{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:4px;text-align:center;font-size:13px;
+    letter-spacing:.08em;color:#b9c3ea;text-shadow:2px 2px 0 #050a2e}
+  .shot .empty code{display:block;margin-top:4px}
+  
   .total{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:8px}
   .total b{font-size:40px; line-height:1}
   .total span{color:#dbe9f5}
@@ -67,6 +83,33 @@
     <p>Traducción al español por Fveralv</p>
   </header>
 
+<section id="capturas">
+    <h2>Capturas de Pantalla</h2>
+    <div class="box">
+      <div class="shots">
+        <figure class="shot">
+          <div class="empty">Captura 1<code>img/captura1.png</code></div>
+          <img src="img/captura1.png" alt="Captura 1 de la traducción" onerror="this.remove()">
+        </figure>
+        
+        <figure class="shot">
+          <div class="empty">Captura 2<code>img/captura2.png</code></div>
+          <img src="img/captura2.png" alt="Captura 2 de la traducción" onerror="this.remove()">
+        </figure>
+        
+        <figure class="shot">
+          <div class="empty">Captura 3<code>img/captura3.png</code></div>
+          <img src="img/captura3.png" alt="Captura 3 de la traducción" onerror="this.remove()">
+        </figure>
+        
+        <figure class="shot">
+          <div class="empty">Captura 4<code>img/captura4.png</code></div>
+          <img src="img/captura4.png" alt="Captura 4 de la traducción" onerror="this.remove()">
+        </figure>
+      </div>
+    </div>
+  </section>
+  
   <section id="progreso">
     <h2>Progreso</h2>
     <div class="box">
