@@ -57,7 +57,7 @@
   .shot .empty{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:4px;text-align:center;font-size:13px;
     letter-spacing:.08em;color:#b9c3ea;text-shadow:2px 2px 0 #050a2e}
   .shot .empty code{display:block;margin-top:4px}
-  
+
   .total{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:8px}
   .total b{font-size:40px; line-height:1}
   .total span{color:#dbe9f5}
@@ -72,6 +72,10 @@
   td:first-child{color:#f1dca6; width:40%}
   .btn{display:inline-block; background:linear-gradient(#f08a3c,#c9531a); color:#fff; text-decoration:none; padding:12px 22px; border:2px solid #e2c27a; border-radius:6px; font-weight:700; margin-bottom:16px}
   .btn:hover{filter:brightness(1.1)}
+  .btn.alt{background:linear-gradient(#3d6f9e,#24496e)}
+  .news{margin:14px 0 4px; color:#f1dca6; font-weight:700}
+  ul{margin:0; padding-left:22px}
+  .box a:not(.btn){color:#ffe7a8}
   ol{margin:8px 0 0; padding-left:22px}
   footer{margin-top:40px; text-align:center; color:#3b2a14; font-size:13px}
 </style>
@@ -91,17 +95,17 @@
           <div class="empty">Captura 1<code>img/captura1.png</code></div>
           <img src="img/captura1.png" alt="Captura 1 de la traducción" onerror="this.remove()">
         </figure>
-        
+
         <figure class="shot">
           <div class="empty">Captura 2<code>img/captura2.png</code></div>
           <img src="img/captura2.png" alt="Captura 2 de la traducción" onerror="this.remove()">
         </figure>
-        
+
         <figure class="shot">
           <div class="empty">Captura 3<code>img/captura3.png</code></div>
           <img src="img/captura3.png" alt="Captura 3 de la traducción" onerror="this.remove()">
         </figure>
-        
+
         <figure class="shot">
           <div class="empty">Captura 4<code>img/captura4.png</code></div>
           <img src="img/captura4.png" alt="Captura 4 de la traducción" onerror="this.remove()">
@@ -109,7 +113,7 @@
       </div>
     </div>
   </section>
-  
+
   <section id="progreso">
     <h2>Progreso</h2>
     <div class="box">
@@ -122,19 +126,43 @@
   <section id="parche">
     <h2>Parche</h2>
     <div class="box">
-      <a class="btn" href="AzureDreams_ES.v0.3.ppf" download>Descargar AzureDreams_ESv0.3.ppf</a>
+      <a class="btn" href="AzureDreams_ES.v0.4a.ppf" download>Descargar AzureDreams_ES.v0.4a.ppf</a>
       <table>
-        <tr><td>Versión</td><td>Beta 3</td></tr>
-        <tr><td>Actualizado</td><td>01/10/2026</td></tr>
+        <tr><td>Versión</td><td>Beta 4a</td></tr>
+        <tr><td>Actualizado</td><td>05/10/2026</td></tr>
         <tr><td>Formato</td><td>PPF 3.0</td></tr>
         <tr><td>Juego original</td><td>Azure Dreams (USA) · SLUS-006.14</td></tr>
       </table>
+      <p class="news">Novedades de la Beta 4a</p>
+      <ul>
+        <li>Corregido el cuelgue al salir de la tienda de Fur después de intentar comprar.</li>
+        <li>Corregido el cuelgue cuando el viejo de los caballos ofrece construir el hipódromo.</li>
+        <li>Corregidas las opciones que se veían mal (libro de monstruos de la hermana, encargos al constructor, test de la adivina…).</li>
+        <li>Corregidos los nombres de objeto que salían pegados («RojaBlancaCajaCarne», «BlancaCajaCarne»…).</li>
+        <li>Revisadas todas las líneas para que ninguna se salga de la ventana del juego.</li>
+        <li>Revisadas todas las elecciones (445): en las tiendas, las opciones de comprar/vender quedan alineadas como en el original.</li>
+      </ul>
       <ol>
     <p class="dim">El parche solo contiene las diferencias con el disco original. No incluye el juego: necesitas tu propia copia legal.</p>
     <p class="dim">-</p>
     <p class="dim">¿Te gusta lo que hago? Si crees que mi trabajo merece la pena, puedes apoyarme invitándome a un café. ¡Cualquier aporte me ayuda a seguir creando! ☕</p>
-    <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support me on Ko-fi', '#72a4f2', 'S6P527KUBF');kofiwidget2.draw();</script> 
+    <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support me on Ko-fi', '#72a4f2', 'S6P527KUBF');kofiwidget2.draw();</script>
       </ol>
+    </div>
+  </section>
+
+  <section id="herramienta">
+    <h2>Herramienta</h2>
+    <div class="box">
+      <a class="btn alt" href="AzureDreamsTool_v0.4a.zip" download>Descargar la herramienta (v0.4a)</a>
+      <p style="margin:0 0 10px">La misma herramienta con la que se ha hecho la traducción, para Windows. Con ella puedes revisar o mejorar esta traducción, o hacer otra a cualquier idioma:</p>
+      <ul>
+        <li>Editor de todos los textos, objetos y mensajes de combate, con avisos si algo no cabe en la ventana del juego.</li>
+        <li>Editor de la fuente para añadir letras (á, ñ, ¿…) y editor de imágenes de la interfaz.</li>
+        <li>Crea el BIN traducido y el parche PPF verificado en un par de clics.</li>
+        <li>Incluye la traducción completa en CSV: con tu BIN original genera exactamente este parche.</li>
+      </ul>
+      <p style="margin:12px 0 0">Código fuente y documentación técnica (punteros, offsets, formatos): <a href="https://github.com/fjveralv/Parche-traducci-n-Azure-Dreams">repositorio en GitHub</a> · <a href="https://github.com/fjveralv/Parche-traducci-n-Azure-Dreams/blob/main/DOCUMENTACION.md">DOCUMENTACION.md</a></p>
     </div>
   </section>
 
@@ -148,13 +176,14 @@
       { name: "La Torre",            done: 965,  total: 965, text: true },
       { name: "Menús y sistema",     done: 970,  total: 970, text: true },
       { name: "Objetos",             done: 259,  total: 259,  text: false },
+      { name: "Mensajes de combate", done: 280,  total: 280,  text: false },
       { name: "Caracteres especiales (á é í ó ú ü ñ Ñ ¿ ¡)", done: 10, total: 10,  text: false },
       { name: "Elementos visuales",             done: 0,  total: 0,  text: false },
       { name: "Subtítulos de los vídeos",             done: 0,  total: 0,  text: false }
     ]
   };
   const fmt = n => n.toLocaleString("es-ES");
-  const pct = (a,b) => Math.round(a*100/b);
+  const pct = (a,b) => b ? Math.round(a*100/b) : 0;
 
   const t = DATA.areas.filter(a=>a.text);
   const d = t.reduce((s,a)=>s+a.done,0), all = t.reduce((s,a)=>s+a.total,0);
@@ -168,7 +197,8 @@
   DATA.areas.forEach(a=>{
     const p = pct(a.done,a.total);
     const r = document.createElement("div"); r.className = "row";
-    r.innerHTML = '<div class="h"><span>'+a.name+'</span><small>'+fmt(a.done)+' / '+fmt(a.total)+' · '+p+' %</small></div><div class="bar"><i></i></div>';
+    const info = a.total ? fmt(a.done)+' / '+fmt(a.total)+' · '+p+' %' : 'Pendiente';
+    r.innerHTML = '<div class="h"><span>'+a.name+'</span><small>'+info+'</small></div><div class="bar"><i></i></div>';
     box.appendChild(r);
     bars.push(r.querySelector("i")); vals.push(p);
   });

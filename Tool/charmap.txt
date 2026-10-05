@@ -1,0 +1,16 @@
+# Letras nuevas del juego (ver DOCUMENTACION.md, apartado Fuente).
+# Cada linea: CODIGO_SJIS=caracter@celda
+#   CODIGO_SJIS: simbolo de la tabla de caracteres del ejecutable que se reutiliza (ningun texto lo usa).
+#   caracter:    letra que escribes en la traduccion.
+#   celda:       celda de la fuente (0-127) donde esta dibujada la letra.
+# Se edita comodamente en la pestana "Fuente" de la herramienta.
+814F=á@113
+8151=é@112
+8160=í@118
+8162=ó@119
+8165=ú@115
+8194=ü@109
+816F=ñ@111
+8170=Ñ@123
+818F=¿@126
+8190=¡@127
