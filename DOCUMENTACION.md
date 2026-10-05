@@ -28,6 +28,7 @@ sectores). Los números van en hexadecimal (`0x…`) salvo que se diga otra cosa
 14. [Línea de comandos](#14-línea-de-comandos)
 15. [Código fuente: qué hace cada archivo](#15-código-fuente-qué-hace-cada-archivo)
 16. [Pendiente y créditos](#16-pendiente-y-créditos)
+17. [Vídeo de introducción (subtítulos)](#17-vídeo-de-introducción-subtítulos)
 
 ---
 
@@ -41,7 +42,7 @@ sectores). Los números van en hexadecimal (`0x…`) salvo que se diga otra cosa
 | Fuente de los diálogos | `MAIN.BIN` `0x2257D8` y `DUNGEON.BIN` `0x4C27D8` | LZ propio, 128×128 a 4 bpp | Recomprimida (debe caber en su hueco) |
 | Tabla de caracteres | SLUS, RAM `0x8007142C` (claves) / `0x8007147C` (valores) | 40 códigos SJIS → celda | Se redirigen 10 símbolos a letras nuevas |
 | Gráficos de menú/UI | Directorios en `MAIN.BIN` `0x221800`, `DUNGEON.BIN` `0x4BE800` | LZ propio | Editor de imágenes de la herramienta |
-| Vídeos (intro) | `STR/*.STR` | MDEC (FMV) | No soportado todavía |
+| Vídeos (intro) | `STR/LOP2_WS.STR` | MDEC (FMV) | Texto quemado en la imagen: se rehacen los fotogramas con jPSXdec (§17) |
 
 ---
 
@@ -151,12 +152,30 @@ Resultado en el disco USA: **5.082 textos en inglés** (SLUS 786, MAIN 217, TOWN
 Si la traducción ocupa menos que el original, el resto se rellena para que el siguiente dato del
 script quede donde estaba. Orden que usa la herramienta (`SjisCodec.PadTo`):
 
-1. Espacios (`81 40`) al **final de las líneas de texto**, sin pasar de 31 caracteres por línea.
-2. **Líneas en blanco** al final de ventanas que tengan menos de 3 líneas.
-3. Un `{VENT}` extra detrás de cada `{PAG}{VENT}` (el juego original ya usa `{VENT}{VENT}`).
-4. Si la entrada solo tiene opciones: espacios detrás de cada opción **sin pasar del ancho que tenía
-   esa opción en el original**.
-5. Último recurso: espacios en la última línea de texto.
+0. Cadenas "puras" de SLUS y MAIN (ayudas, menús: texto y saltos de línea, sin códigos de script) que en
+   el original **terminan en `00`**: se leen por puntero hasta el `00`, así que se rellenan con `00`. Si lo
+   que sigue no es `00` (p.ej. `11` {PAG}), el texto es parte de un guion y un `00` de relleno sería una
+   instrucción basura: así se colgaba el tutorial de Kewne en la torre (v0.4b-v0.4d).
+0b. **Páginas en su sitio**: cada `{PAG}` (`11`) se deja en la misma posición que en el original y el
+   relleno se reparte página a página (`PadPages`). Los guiones de eventos de `TOWN.BIN` saltan con
+   **direcciones absolutas** (`15 dir`, `17 dir`, `3E xx dir`; `4C dir` llama a código) al `{PAG}` o a lo que
+   le sigue. Si se mueve, el salto cae en mitad del texto y el juego se cuelga (escena de Guy al poner
+   nombre al bebé, v0.4b-v0.4c). Cada bloque se carga detrás del código de su zona (p.ej. TOWN `0x427800` →
+   RAM `0x80017B60`), y la dirección de carga no está en ningún índice. Por eso se anclan todas las
+   páginas posibles, eligiendo con programación dinámica la combinación sin relleno de último recurso.
+   El informe dice cuántas `páginas sin anclar` quedan; lo ideal es 0. Para anclar una página, su
+   traducción (también el último trozo del texto) debe caber en los bytes de la original y poder
+   rellenarse: con espacios hasta la columna 29 o con un `{VENT}` extra tras el `{PAG}` (el original usa
+   `{PAG}{VENT}{VENT}`). Desde la v1.0quedan 0: las páginas cuyo original tenía líneas de 30-31 letras se han
+   reescrito para llegar a esas columnas (o con opciones más largas que las originales). Las páginas
+   ajustadas están en `trad/t_067.txt`.
+1. Espacios (`81 40`) al **final de las líneas de texto**, sin pasar de la **columna 29** (ver §5.1).
+2. **Líneas en blanco** (salto + espacios) al final de ventanas sin opciones que tengan menos de 3 líneas.
+3. Hasta dos `{VENT}` extra detrás de cada `{PAG}{VENT}` (el original tiene cientos de `{VENT}{VENT}{VENT}`).
+4. Si la entrada solo tiene opciones: espacios detrás de cada opción sin pasar del ancho que tenía
+   esa opción en el original ni de la columna 29.
+5. Último recurso (la herramienta lo cuenta en el informe; en la traducción española no queda ninguno):
+   espacios en la última línea. Si ocurre, alarga un poco la traducción para llenar el hueco.
 
 **Nunca** se ponen espacios detrás de una opción `[…]` más allá de su ancho original (ver §5.2).
 
@@ -171,6 +190,12 @@ Estos fallos aparecieron durante la traducción. La herramienta los evita o avis
 En el original ninguna línea de diálogo pasa de 31 caracteres (`{HEROE}` cuenta como 8) y cada
 ventana muestra 3 líneas. La pestaña Texto marca en **naranja** las traducciones que lo superan
 (filtro «Con avisos») y «Comprobar» las lista.
+
+**Espacios al final de línea:** si una línea llega a las columnas 30-31 con **espacios**, el motor salta
+de línea por su cuenta y el salto explícito añade otra: aparece una línea de más que empuja el texto
+hacia arriba y descuadra el cursor de las opciones (así pasaba en las preguntas Sí/No de la adivina).
+En el original casi nunca hay espacios en esas columnas (3 de ~4.000 líneas). Por eso el relleno no pasa
+de la columna 29. Las líneas de 30-31 **letras** sí son válidas.
 
 ### 5.2 Opciones de elección
 
@@ -210,10 +235,13 @@ herramienta quita ese signo de apertura automáticamente en esa posición.
 
 ### 5.5 Nombres de objeto reubicados
 
-Los nombres que no caben se copian a una zona libre (§6.3). Cada cadena necesita su byte `00` final.
-La v0.3 alineaba la siguiente cadena encima de ese `00` cuando el nombre medía 4, 8, 12… bytes, y el
-juego leía varios nombres pegados («RojaBlancaCajaCarne»). En la tienda de Fur eso desbordaba la
-lista y el juego se colgaba al salir. Corregido en la v0.4.
+Las versiones hasta la v0.4a copiaban los nombres que no cabían a una zona del SLUS que estaba a ceros
+(RAM `0x8007BCB0`–`0x8007BEF0`). **No es espacio libre:** es la pila de matrices de la librería gráfica
+(`PushMatrix`/`PopMatrix`, 20 matrices de 32 bytes desde `0x8007BC70`; justo después está el mensaje
+«Can't push matrix, stack (max 20) is full!»). En escenas 3D como la tienda de Fur el juego escribía
+matrices encima de los nombres y se colgaba. Desde la v0.4b solo se usa espacio de los propios textos
+de objetos (§6.3). Antes de usar una zona "a ceros", comprueba en los símbolos de la descompilación
+y en volcados de RAM que no la usa nada en tiempo de ejecución.
 
 ---
 
@@ -250,10 +278,18 @@ En la categoría Trampas, el "nombre" es la descripción de la trampa.
 
 ### 6.3 Reubicación
 
-Si un texto traducido no cabe en su cadena original, se escribe en una **zona libre verificada del
-SLUS**: offset `0x4F4B0`–`0x4F6F0` (RAM `0x8007BCB0`–`0x8007BEF0`, 576 bytes), y se reescribe el
-puntero del registro. Cada cadena se alinea a 4 bytes **después** de su `00` final. La pestaña
-Objetos muestra el espacio libre que queda.
+Cada cadena de objeto tiene un **hueco**: desde su inicio hasta el siguiente byte no nulo del original
+(incluye el relleno de alineación). Al escribir una traducción (`ItemsModel.SetString`):
+
+1. Si otra cadena de objeto ya tiene exactamente ese texto, se apunta a ella (p.ej. los tres «Fuego»).
+2. Si cabe en su hueco sin pisar otra cadena en uso, se escribe en su sitio.
+3. Si no, se coloca en la parte libre de otro hueco (colas de descripciones que han quedado más cortas,
+   o huecos abandonados) y se reescribe el puntero del registro.
+
+Nunca se reutiliza un hueco al que apunte algún puntero ajeno a la tabla de objetos (se comprueban
+todas las palabras de 32 bits de SLUS y MAIN). Las posiciones de las cadenas de objetos las gestiona
+solo esta tabla: la tabla de texto no las escribe, aunque aparezcan en `texto_es.csv`. La pestaña
+Objetos muestra los bytes libres que quedan (≈3.000 con la traducción española).
 
 ---
 
@@ -381,7 +417,33 @@ Flujo de bits de banderas (byte de 8 banderas, se leen del bit bajo al alto):
 La herramienta descomprime, deja editar y **recomprime** con el mismo formato (el resultado debe
 caber en el hueco original; si no, simplifica el dibujo).
 
-### 10.3 Editar un gráfico de menú/UI
+### 10.3 Imágenes con texto del juego
+
+Revisadas todas las texturas comprimidas de MAIN, TOWN y DUNGEON (~480). Solo estas tienen texto:
+
+| Imagen | Ubicación (archivo y offset del flujo) | Formato | Texto original → español |
+|---|---|---|---|
+| Menú del título | `MAIN.BIN 0x257024` (cabecera en 0x257000, VRAM 704,384) | 4 bpp 128×128 | New Game / Continue / Options → Nueva partida / Continuar / Opciones |
+| Pestañas del menú de la torre | `MAIN.BIN 0x224B24` y `DUNGEON.BIN 0x4C1B24` | 4 bpp 128×128 | Items, Select, Line up, Fuse, Command, At Hand, At Feet → Objetos, Elegir, Formar, Fusión, Órdenes, Mano, Suelo |
+| Hoja de interfaz | `MAIN.BIN 0x221EDC` y `DUNGEON.BIN 0x4BEEDC` | 4 bpp 128×128 | Yes / No! → Sí / No (HP, MP, Lv se quedan) |
+| Iconos de tienda | `MAIN.BIN 0x222B08` y `DUNGEON.BIN 0x4BFB08` | 4 bpp 128×128 | SELL / BUY → VEND / COMP |
+| Rótulo de piso | `DUNGEON.BIN 0x4BB2E4` | 8 bpp 128×128 | The Monster Tower → Torre de Monstruos |
+
+Ojo: un flujo real nunca empieza con ceros. El decodificador puede «atravesar» relleno de ceros hasta
+llegar a la imagen de verdad (así se tomó por error `0x2554DB` en la v0.4b). Ese relleno es memoria del
+juego y escribir en él colgaba la partida nueva al poner nombre. La herramienta rechaza ahora esos offsets.
+
+Además, «NOW LOADING...» es texto ASCII en el ejecutable (`SLUS 0x405B8`, 16 bytes; la `u` hace de
+espacio en esa hoja de letras): se traduce como «CARGANDO...» en `textos_extra.csv` con
+`codificacion=ascii`.
+
+Las imágenes traducidas van en la carpeta **`imagenes/`** de la traducción, una PNG por textura:
+`ARCHIVO@OFFSET.png` (`/` cambiado por `_`, p.ej. `MAIN_MAIN.BIN@224B24.png`), 128 px de ancho, y
+el gris de cada píxel es el **índice de color** (4 bpp: gris = índice × 17; 8 bpp: gris = índice). Al
+crear el BIN se recomprimen y se escriben en su sitio (`UiImages.cs`). Las de esta traducción se
+generan con `Tool/uigen.cs`, que dibuja los textos en español imitando el estilo de cada imagen.
+
+### 10.4 Editar un gráfico de menú/UI
 
 1. Pestaña **Imágenes / UI**: arriba hay un **catálogo** con todos los flujos comprimidos válidos
    encontrados en SLUS, MAIN, TOWN y DUNGEON (miniaturas orientativas a 4 bpp).
@@ -476,8 +538,9 @@ pueden ir en cualquier orden; las que no se usan se ignoran.
 | `texto_es.csv` | `archivo`, `offset` (hex), `traduccion` (+ `id`, `max_bytes` informativas) | archivo + offset |
 | `objetos_es.csv` | `cat_id`, `num`, `nombre_es`, `descripcion_es`, `compra_es`, `venta_es` | categoría + número |
 | `mensajes_es.csv` | `id` (0–279), `traduccion` | id |
-| `textos_extra.csv` | `archivo`, `offset` (hex), `max_bytes`, `traduccion` | archivo + offset |
+| `textos_extra.csv` | `archivo`, `offset` (hex), `max_bytes`, `traduccion`, `codificacion` (vacío = Shift-JIS, `ascii` = un byte por letra) | archivo + offset |
 | `charmap.txt` | `CODIGO=letra@celda` | — |
+| `imagenes/*.png` | `ARCHIVO@OFFSET.png`, gris = índice de color (§10.3) | archivo + offset |
 
 En la traducción: salto de línea real = `⏎` del juego; `{HEROE}`, `{PAG}`, `{VENT}` y `{xx}` =
 códigos de control. Los CSV publicados en `traduccion/` **no incluyen el texto original** del
@@ -518,6 +581,8 @@ BIN** (comprobado con MD5).
 | `BattleMsgs.cs`, `BattlePage.cs` | Mensajes comprimidos de combate y su pestaña |
 | `FontPatch.cs`, `FontPage.cs` | Atlas de la fuente, letras del español, tabla de caracteres, pestaña Fuente |
 | `GfxCodec.cs`, `GfxPage.cs` | Compresión LZ de gráficos, catálogo y editor de imágenes |
+| `UiImages.cs` | Aplica las imágenes traducidas de la carpeta `imagenes/` |
+| `../uigen.cs` | Generador de las imágenes de la interfaz en español (se compila aparte con `GfxCodec.cs`) |
 | `TablesPage.cs` | Editor de tablas de datos |
 | `HexPage.cs` | Editor hexadecimal y explorador de archivos |
 | `Ppf.cs` | Crear y verificar parches PPF 3.0 |
@@ -530,8 +595,7 @@ BIN** (comprobado con MD5).
 
 ## 16. Pendiente y créditos
 
-**Pendiente:** texto dibujado en imágenes del menú de título; subtítulos de la introducción en
-vídeo (`STR`, formato MDEC).
+**Pendiente:** nada conocido; se aceptan informes de fallos o erratas.
 
 **Créditos e investigación previa:**
 - Estructura de la compresión de gráficos y símbolos: proyecto de decompilación comunitario

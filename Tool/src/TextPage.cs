@@ -44,6 +44,7 @@ namespace AzTool
 
         public override string Title { get { return "Traducción de texto"; } }
         public List<TextEntry> Entries { get { return all; } }
+        HashSet<string> owned;
 
         public TextPage()
         {
@@ -146,6 +147,7 @@ namespace AzTool
             }
             Cursor = Cursors.Default;
             int id = 0; foreach (TextEntry t in all) t.Id = ++id;
+            owned = ItemsModel.OwnedTextOffsets(P);
             BuildPointerIndex();
             RebuildCharButtons();
             fileFilter.SelectedIndex = 0;
@@ -415,6 +417,13 @@ namespace AzTool
                 P.Write(t.File, (int)t.Offset, t.OrigBytes);
                 return null;
             }
+            if (owned != null && owned.Contains(t.File + "|" + t.Offset.ToString("X")))
+            {
+                // nombre/descripcion de objeto: lo escribe la tabla de objetos (que puede reubicarlo); aqui solo se mide
+                try { byte[] e0 = P.Codec.Encode(t.Translation); t.UsedBytes = e0.Length; t.UsedCtl = P.Codec.CountControl(t.Translation); } catch (Exception) { t.UsedBytes = -1; }
+                t.Warn = "";
+                return null;
+            }
             byte[] enc;
             t.Warn = "";
             try
@@ -427,10 +436,11 @@ namespace AzTool
             t.UsedBytes = enc.Length;
             t.UsedCtl = P.Codec.CountControl(t.Translation);
             if (enc.Length > t.Length) { P.Write(t.File, (int)t.Offset, t.OrigBytes); return "Excede " + (enc.Length - t.Length) + " bytes"; }
-            byte[] o = SjisCodec.PadMessages(t.OrigBytes, enc);   // cada mensaje interno (tras 0x01) se queda en su sitio
+            byte[] src = P.GetOriginal(t.File); int next = (int)t.Offset + t.Length < src.Length ? src[(int)t.Offset + t.Length] : -1;
+            byte[] o = SjisCodec.PadEntry(t.File, t.OrigBytes, enc, next);   // cada mensaje interno (tras 0x01) se queda en su sitio
             if (o == null)
             {
-                try { byte[] e2 = P.Codec.Encode(SelfTest.NoOpening(t.Translation)); o = SjisCodec.PadMessages(t.OrigBytes, e2); if (o != null) enc = e2; }
+                try { byte[] e2 = P.Codec.Encode(SelfTest.NoOpening(t.Translation)); o = SjisCodec.PadEntry(t.File, t.OrigBytes, e2, next); if (o != null) enc = e2; }
                 catch (Exception) { }
             }
             if (o == null) { t.UsedBytes = -2; P.Write(t.File, (int)t.Offset, t.OrigBytes); return "Un mensaje interno (separado por {01}) no cabe en su hueco"; }

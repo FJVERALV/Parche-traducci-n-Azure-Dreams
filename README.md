@@ -7,7 +7,7 @@ Web del proyecto: https://fjveralv.github.io/Parche-traducci-n-Azure-Dreams/
 
 Este repositorio **no incluye ninguna imagen del disco ni archivo del juego**. Contiene:
 
-- `AzureDreams_ES.v0.4a.ppf` — el parche de traducción (Beta 4a), en formato **PPF 3.0**.
+- `AzureDreams_ES.v1.0.ppf` — el parche de traducción, en formato **PPF 3.0**.
   `AzureDreams_ES.ppf` es siempre la última versión; las anteriores se conservan con su número.
 - `Tool/` — la herramienta (ejecutable y código fuente) con la que se ha hecho la traducción.
 - `traduccion/` — la traducción en CSV (solo la ubicación en el disco y el texto en español, sin el
@@ -22,13 +22,42 @@ Necesitas tu propia copia legal del juego en formato `.bin/.cue` (imagen RAW, 23
 
 1. Descarga un programa que aplique parches PPF, por ejemplo **PPF-O-Matic** o **MultiPatch**.
 2. Selecciona como archivo a parchear tu `Azure Dreams (USA).bin` (haz antes una copia).
-3. Selecciona `AzureDreams_ES.v0.4a.ppf` como parche.
+3. Selecciona `AzureDreams_ES.v1.0.ppf` como parche.
 4. Aplica. El programa comprueba automáticamente (blockcheck) que el `.bin` es la versión correcta.
 5. Juega con el `.cue` original apuntando al `.bin` ya parcheado.
 
-## Novedades de la Beta 4aa (v0.4a)
+## Novedades de la 1.0
 
-- Corregido el cuelgue al salir de la tienda de Fur después de intentar comprar.
+- Vídeo de introducción subtitulado en español: se borra el texto inglés de la franja inferior de
+  `STR/LOP2_WS.STR` y se dibujan los 45 rótulos en español (ver DOCUMENTACION.md §17). Por eso el parche
+  pesa ahora unos 38 MB (el vídeo se recodifica).
+- Todas las páginas de texto quedan ancladas en su sitio (0 sin anclar): las 77 que faltaban se han
+  reescrito para ocupar lo mismo que el original.
+- Revisión de estilo: «Torre de Monstruos» siempre con mayúsculas.
+
+## Novedades de la Beta 4f (v0.4f)
+
+- Revisados unos 420 textos del pueblo y de la torre para que cada cambio de página quede donde estaba
+  en el original: los guiones del juego saltan a esas posiciones y, si se mueven, el juego se cuelga
+  (como pasaba con Guy). Algunas frases son ahora algo más cortas.
+
+## Novedades de la Beta 4e (v0.4e)
+
+- Corregido el cuelgue al empezar partida nueva (escena de Guy al poner nombre al bebé): los saltos de
+  los guiones del pueblo apuntan a posiciones fijas del texto y ahora cada cambio de página se queda en
+  su sitio.
+- Corregido el cuelgue en el tutorial de Kewne en la torre (cruceta para cambiar de dirección).
+- Menú del título en español con las mismas letras del original (Nueva partida / Continuar / Opciones).
+- Las versiones 4b y 4c se han retirado porque se colgaban en esas escenas.
+
+## Novedades de la Beta 4b (v0.4b)
+
+- Menús e interfaz en español: título (Nueva partida / Continuar / Opciones), pestañas del menú de la
+  torre, Sí/No, iconos de Comprar/Vender, rótulo «Torre de Monstruos» y «CARGANDO...».
+- Corregido el cuelgue de la tienda de Fur: los nombres de objeto reubicados estaban en la pila de
+  matrices 3D del juego (RAM 0x8007BC70-0x8007BEF0); ahora solo se usa espacio de los propios textos de objetos.
+- Corregido el descuadre del cursor en las preguntas Sí/No de la adivina: el relleno ya no pone
+  espacios pasada la columna 29 (el motor los convertía en saltos de línea).
 - Corregido el cuelgue cuando el viejo de los caballos ofrece construir el hipódromo.
 - Corregidas las opciones que se veían mal (libro de monstruos de la hermana, encargos al
   constructor, test de la adivina…): ninguna opción ni línea pasa del ancho de la ventana.
@@ -47,8 +76,9 @@ Necesitas tu propia copia legal del juego en formato `.bin/.cue` (imagen RAW, 23
 - Mensajes de combate, objetos y estados de la torre: traducidos.
 - Acentos, eñe y signos de apertura: `á é í ó ú ü ñ Ñ ¿ ¡` (las mayúsculas acentuadas, sin tilde).
 - Nombres de personajes y monstruos: sin traducir, a propósito.
-- Gráficos de menú/interfaz con texto: pendiente.
-- Introducción del juego (vídeo): pendiente la traducción y creación de subtítulos.
+- Gráficos de menú/interfaz con texto: traducidos (carpeta `traduccion/imagenes`, generados con `Tool/uigen.cs`).
+- Introducción del juego (vídeo): subtitulada (`traduccion/video_lop2_es.txt`, `Tool/vidsub.cs`,
+  `Tool/subtitular_video.ps1`; necesita Java y jPSXdec 2.1). El resto de vídeos no tiene texto.
 
 ## La herramienta (`Tool/`)
 

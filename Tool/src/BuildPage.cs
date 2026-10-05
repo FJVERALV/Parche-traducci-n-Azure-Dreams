@@ -224,7 +224,7 @@ namespace AzTool
                     if (r.Length >= 5 && r[4].Trim().Length > 0)
                     {
                         int max; int.TryParse(r[2], out max);
-                        try { if (P.Codec.Encode(SelfTest.NoOpening(r[4])).Length > max) { nErr++; err.AppendLine("Texto extra " + r[1] + ": no cabe en " + max + " bytes"); } }
+                        try { int need = r[5].Trim().ToLowerInvariant() == "ascii" ? r[4].Length + 1 : P.Codec.Encode(SelfTest.NoOpening(r[4])).Length; if (need > max) { nErr++; err.AppendLine("Texto extra " + r[1] + ": no cabe en " + max + " bytes"); } }
                         catch (Exception ex) { nErr++; err.AppendLine("Texto extra " + r[1] + ": " + ex.Message); }
                     }
             if (P.Codec.HasExtra)
@@ -246,8 +246,8 @@ namespace AzTool
         static string Short(string s) { s = s.Replace("\n", "⏎"); return s.Length > 90 ? s.Substring(0, 90) + "…" : s; }
         static List<string[]> SafeRows(string p)
         {
-            try { List<string[]> r = Csv.Read(p); string[] h = r[0]; int cf = Csv.Col(h, "archivo"), co = Csv.Col(h, "offset"), cm = Csv.Col(h, "max_bytes"), co2 = Csv.Col(h, "original"), ct = Csv.Col(h, "traduccion");
-                  List<string[]> o = new List<string[]>(); for (int i = 1; i < r.Count; i++) { string[] x = r[i]; Func<int, string> g = delegate(int c) { return c >= 0 && c < x.Length ? x[c] : ""; }; o.Add(new string[] { g(cf), g(co), g(cm), g(co2), g(ct) }); } return o; }
+            try { List<string[]> r = Csv.Read(p); string[] h = r[0]; int cf = Csv.Col(h, "archivo"), co = Csv.Col(h, "offset"), cm = Csv.Col(h, "max_bytes"), co2 = Csv.Col(h, "original"), ct = Csv.Col(h, "traduccion"), cc = Csv.Col(h, "codificacion");
+                  List<string[]> o = new List<string[]>(); for (int i = 1; i < r.Count; i++) { string[] x = r[i]; Func<int, string> g = delegate(int c) { return c >= 0 && c < x.Length ? x[c] : ""; }; o.Add(new string[] { g(cf), g(co), g(cm), g(co2), g(ct), g(cc) }); } return o; }
             catch (Exception) { return new List<string[]>(); }
         }
 
@@ -269,6 +269,7 @@ namespace AzTool
             {
                 Cursor = Cursors.WaitCursor;
                 if (File.Exists(F(FExtra))) sb.AppendLine(SelfTest.ApplyExtra(P, F(FExtra)));
+                if (Directory.Exists(F("imagenes"))) sb.AppendLine(UiImages.Apply(P, F("imagenes")));
                 if (P.Codec.HasExtra) sb.Append(FontPatch.ApplyAll(P));
                 int runs = P.Build(outBin);
                 LastBin = outBin;

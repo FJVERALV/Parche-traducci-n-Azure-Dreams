@@ -149,8 +149,8 @@ namespace AzTool
         void UpdatePool()
         {
             if (model == null) return;
-            int free = model.PoolFree(), total = ItemsModel.PoolEnd - ItemsModel.PoolStart;
-            poolMeter.Set(total - free, total, free < 20, (total - free) + " / " + total + " bytes usados");
+            int free = model.PoolFree();
+            poolMeter.Set(Math.Max(0, 600 - free), 600, free < 20, free + " bytes libres en los textos de objetos para reubicar");
         }
 
         void ApplyCurrent()

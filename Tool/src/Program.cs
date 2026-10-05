@@ -140,12 +140,21 @@ namespace AzTool
         {
             if (!File.Exists(csv)) return "Textos extra: no hay " + Path.GetFileName(csv);
             List<string[]> rows = Csv.Read(csv); string[] h = rows[0];
-            int cf = Csv.Col(h, "archivo"), co = Csv.Col(h, "offset"), cm = Csv.Col(h, "max_bytes"), ct = Csv.Col(h, "traduccion");
+            int cf = Csv.Col(h, "archivo"), co = Csv.Col(h, "offset"), cm = Csv.Col(h, "max_bytes"), ct = Csv.Col(h, "traduccion"), cc = Csv.Col(h, "codificacion");
             int ok = 0; StringBuilder bad = new StringBuilder();
             for (int i = 1; i < rows.Count; i++)
             {
                 string[] r = rows[i]; if (r.Length <= ct || r[ct].Trim().Length == 0) continue;
                 int max = int.Parse(r[cm]);
+                if (cc >= 0 && cc < r.Length && r[cc].Trim().ToLowerInvariant() == "ascii")
+                {
+                    // texto ASCII de un solo byte (p.ej. "NOW LOADING..." del ejecutable), relleno con 00
+                    byte[] a = Encoding.ASCII.GetBytes(r[ct]);
+                    if (a.Length + 1 > max) { bad.Append(" " + r[co]); continue; }
+                    byte[] w = new byte[max]; Array.Copy(a, w, a.Length);
+                    p.Write(r[cf].Trim(), Convert.ToInt32(r[co].Trim(), 16), w); ok++;
+                    continue;
+                }
                 byte[] enc = p.Codec.Encode(r[ct]);
                 if (enc.Length > max) enc = p.Codec.Encode(NoOpening(r[ct]));
                 if (enc.Length > max) { bad.Append(" " + r[co]); continue; }
@@ -163,24 +172,29 @@ namespace AzTool
             foreach (string f in new string[] { "SLUS_006.14", "MAIN/MAIN.BIN", "TOWN/TOWN.BIN", "DUNGEON/DUNGEON.BIN" })
                 foreach (TextEntry e in p.Codec.Scan(p.GetOriginal(f), f, 3)) map[e.File + "|" + e.Offset.ToString("X")] = e;
             int tOk = 0, tOver = 0, tErr = 0;
+            HashSet<string> owned = ItemsModel.OwnedTextOffsets(p);
             List<string[]> rows = Csv.Read(textCsv); string[] h = rows[0];
             int cf = Csv.Col(h, "archivo"), co = Csv.Col(h, "offset"), ct = Csv.Col(h, "traduccion"), cid = Csv.Col(h, "id");
             for (int i = 1; i < rows.Count; i++)
             {
                 string[] r = rows[i]; if (r.Length <= ct || r[ct].Trim().Length == 0) continue;
                 TextEntry t; if (!map.TryGetValue(r[cf].Trim() + "|" + Convert.ToInt64(r[co].Trim(), 16).ToString("X"), out t)) { tErr++; continue; }
+                if (owned.Contains(t.File + "|" + t.Offset.ToString("X"))) { tOk++; continue; }   // cadena de objeto: la escribe la tabla de objetos
                 byte[] enc;
                 string tr = TextPage.NormalizeTrans(t, r[ct]);   // igual que la interfaz: sin saltos donde el original no tiene
                 try { enc = p.Codec.Encode(tr); if (enc.Length > t.Length) enc = p.Codec.Encode(NoOpening(tr)); } catch (Exception ex) { tErr++; sb.AppendLine("texto " + r[cid] + " ERROR " + ex.Message); continue; }
                 if (enc.Length > t.Length) { tOver++; sb.AppendLine("texto " + r[cid] + " NO CABE"); continue; }
                 byte[] ob = new byte[t.Length]; Array.Copy(p.GetOriginal(t.File), (int)t.Offset, ob, 0, t.Length);
-                byte[] o = SjisCodec.PadMessages(ob, enc);
-                if (o == null) { byte[] e2 = p.Codec.Encode(NoOpening(tr)); o = SjisCodec.PadMessages(ob, e2); }
+                SjisCodec.Current = r[cid];
+                byte[] src = p.GetOriginal(t.File); int next = (int)t.Offset + t.Length < src.Length ? src[(int)t.Offset + t.Length] : -1;
+                byte[] o = SjisCodec.PadEntry(t.File, ob, enc, next);
+                if (o == null) { byte[] e2 = p.Codec.Encode(NoOpening(tr)); o = SjisCodec.PadEntry(t.File, ob, e2, next); }
                 if (o == null) { tOver++; sb.AppendLine("texto " + r[cid] + " NO CABE (un mensaje interno no cabe en su hueco)"); continue; }
                 p.Write(t.File, (int)t.Offset, o); tOk++;
             }
-            sb.AppendLine("Texto: aplicadas=" + tOk + " se_pasan(omitidas)=" + tOver + " errores=" + tErr);
+            sb.AppendLine("Texto: aplicadas=" + tOk + " se_pasan(omitidas)=" + tOver + " errores=" + tErr + " relleno_ultimo_recurso=" + SjisCodec.LastResort);
             sb.AppendLine(ApplyExtra(p, Path.Combine(Path.GetDirectoryName(Path.GetFullPath(textCsv)), "textos_extra.csv")));
+            sb.AppendLine(UiImages.Apply(p, Path.Combine(Path.GetDirectoryName(Path.GetFullPath(textCsv)), "imagenes")));
             ItemsModel im = new ItemsModel(p); im.Load();
             int iOk = 0, iErr = 0;
             List<string[]> irows = Csv.Read(itemsCsv); string[] ih = irows[0];
@@ -198,6 +212,9 @@ namespace AzTool
             if (p.Codec.HasExtra) sb.Append(FontPatch.ApplyAll(p));
             int runs = p.Build(outBin);
             sb.AppendLine("BIN creado: " + outBin + " (" + runs + " bloques)");
+            foreach (string lr in SjisCodec.LastResortLog) sb.AppendLine("relleno ultimo recurso: texto " + lr);
+            sb.AppendLine("paginas sin anclar: " + SjisCodec.UnanchoredPages + " en " + SjisCodec.PageFallbackLog.Count + " textos");
+            foreach (string pf in SjisCodec.PageFallbackLog) sb.AppendLine("paginas sin anclar: texto " + pf);
             File.WriteAllText(report, sb.ToString());
             return iErr == 0 ? 0 : 1;
         }

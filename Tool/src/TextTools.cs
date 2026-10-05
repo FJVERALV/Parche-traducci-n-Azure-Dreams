@@ -227,6 +227,35 @@ namespace AzTool
             return list;
         }
 
+        /// <summary>Relleno de una entrada completa. Las cadenas "puras" de SLUS y MAIN (texto y saltos de linea, sin
+        /// codigos de script) se leen por puntero hasta el 00: se rellenan con 00, sin espacios que el motor podria
+        /// convertir en saltos de linea. El resto (scripts de TOWN/DUNGEON) con PadMessages.</summary>
+        /// <remarks>next = byte que sigue a la entrada en el original. Solo es cadena "pura" si termina en 00: si sigue
+        /// un codigo (p.ej. 11 {PAG}), es texto de un guion y un 00 de relleno seria una instruccion basura (se
+        /// colgaba el tutorial de Kewne en la torre, v0.4b).</remarks>
+        public static byte[] PadEntry(string file, byte[] orig, byte[] enc, int next)
+        {
+            if ((file == "SLUS_006.14" || file == "MAIN/MAIN.BIN") && next == 0 && IsPureString(orig))
+            {
+                if (enc.Length > orig.Length) return null;
+                byte[] o = new byte[orig.Length];
+                Array.Copy(enc, o, enc.Length);
+                return o;
+            }
+            return PadMessages(orig, enc);
+        }
+
+        static bool IsPureString(byte[] b)
+        {
+            for (int i = 0; i < b.Length; i++)
+            {
+                if (Lead(b[i])) { i++; continue; }
+                if (b[i] == 0xFE) { i++; continue; }
+                if (b[i] != 0x0A) return false;
+            }
+            return true;
+        }
+
         /// <summary>Rellena la traduccion manteniendo cada mensaje interno en la misma posicion que en el original.
         /// Devuelve null si algun mensaje traducido no cabe en el hueco de su original.</summary>
         public static byte[] PadMessages(byte[] orig, byte[] enc)
@@ -242,10 +271,115 @@ namespace AzTool
                 if (bodyLen > slot) return null;
                 byte[] body = new byte[bodyLen]; Array.Copy(t, 0, body, 0, bodyLen);
                 byte[] ob = new byte[slot]; Array.Copy(a, 0, ob, 0, slot);
-                o.AddRange(PadTo(body, slot, ob));
+                o.AddRange(PadPages(body, ob));
                 if (term) o.Add(0x01);
             }
             return o.ToArray();
+        }
+
+        /// <summary>Entradas en las que alguna pagina traducida no cabia en la suya y se relleno sin anclar paginas.</summary>
+        public static List<string> PageFallbackLog = new List<string>();
+
+        /// <summary>Rellena un mensaje dejando cada {PAG} (0x11) en la misma posicion que en el original: los guiones del
+        /// pueblo saltan con direcciones absolutas (codigos 15, 17, 3E xx) al {PAG} o a lo que le sigue ({VENT}, salto,
+        /// 0F...); si el {PAG} se mueve, el salto cae en mitad del texto y el juego se cuelga (escena de Guy al poner
+        /// nombre). Si una pagina traducida no cabe en la original, se rellena el mensaje entero (y se anota).</summary>
+        static byte[] PadPages(byte[] body, byte[] ob)
+        {
+            List<int> ca = PageCuts(ob), ct = PageCuts(body);
+            if (ca.Count == 0 || ca.Count != ct.Count)
+            {
+                if (ca.Count > 0) { UnanchoredPages += ca.Count; Note(); }
+                return PadTo(body, ob.Length, ob);
+            }
+            // Mayor numero de {PAG} anclados: cortes 0..n+1 (0 = inicio, n+1 = final, siempre anclados); entre dos
+            // cortes anclados consecutivos, la traduccion debe caber en el original.
+            int n = ca.Count;
+            Func<int, int> A = k => k == 0 ? 0 : k == n + 1 ? ob.Length : ca[k - 1] + 1;
+            Func<int, int> T = k => k == 0 ? 0 : k == n + 1 ? body.Length : ct[k - 1] + 1;
+            // Puntuacion: primero evitar el relleno de ultimo recurso (descuadra ventanas y cursores), despues
+            // anclar el mayor numero de {PAG}.
+            const int NONE = int.MinValue;
+            int[] best = new int[n + 2], prev = new int[n + 2];
+            for (int j = 1; j <= n + 1; j++)
+            {
+                best[j] = NONE;
+                for (int i = 0; i < j; i++)
+                {
+                    if (best[i] == NONE || T(j) - T(i) > A(j) - A(i)) continue;
+                    bool endsPag = j <= n;
+                    int sa0 = A(i), sa1 = endsPag ? A(j) - 1 : A(j), st0 = T(i), st1 = endsPag ? T(j) - 1 : T(j);
+                    int v = best[i] + 1 - (NeedsLastResort(body, st0, st1, ob, sa0, sa1, i > 0) ? 1000 : 0);
+                    if (v > best[j]) { best[j] = v; prev[j] = i; }
+                }
+            }
+            if (best[n + 1] == NONE) return PadTo(body, ob.Length, ob);   // no cabe (no deberia pasar)
+            List<int> chain = new List<int>();
+            for (int j = n + 1; j > 0; j = prev[j]) chain.Insert(0, j);
+            chain.Insert(0, 0);
+            int anchored = chain.Count - 2;
+            if (anchored < n) { UnanchoredPages += n - anchored; Note(); }
+            List<byte> r = new List<byte>();
+            for (int c = 0; c + 1 < chain.Count; c++)
+            {
+                int i = chain[c], j = chain[c + 1];
+                // tramo [i, j): termina en el {PAG} del corte j (salvo el final), que queda en su sitio
+                bool endsPag = j <= n;
+                int sa0 = A(i), sa1 = endsPag ? A(j) - 1 : A(j), st0 = T(i), st1 = endsPag ? T(j) - 1 : T(j);
+                byte[] sa = new byte[sa1 - sa0], s = new byte[st1 - st0];
+                Array.Copy(ob, sa0, sa, 0, sa.Length); Array.Copy(body, st0, s, 0, s.Length);
+                if (i > 0 && TryLastResort(s, sa)) { byte[] s2 = WithExtraVent(s, sa); if (s2 != null && !TryLastResort(s2, sa)) s = s2; }
+                r.AddRange(PadTo(s, sa.Length, sa));
+                if (endsPag) r.Add(0x11);
+            }
+            return r.ToArray();
+        }
+
+        /// <summary>Prueba (sin dejar rastro en los contadores) si rellenar ese tramo necesita el ultimo recurso.
+        /// afterPag: el tramo va justo detras de un {PAG}; si empieza por {VENT} puede llevar un {VENT} extra
+        /// ({PAG}{VENT}{VENT}, como en el original), 1 byte de relleno invisible.</summary>
+        static bool NeedsLastResort(byte[] body, int st0, int st1, byte[] ob, int sa0, int sa1, bool afterPag)
+        {
+            byte[] sa = new byte[sa1 - sa0], s = new byte[st1 - st0];
+            Array.Copy(ob, sa0, sa, 0, sa.Length); Array.Copy(body, st0, s, 0, s.Length);
+            if (!TryLastResort(s, sa)) return false;
+            byte[] s2 = afterPag ? WithExtraVent(s, sa) : null;
+            return s2 == null || TryLastResort(s2, sa);
+        }
+
+        static bool TryLastResort(byte[] s, byte[] sa)
+        {
+            int lr = LastResort, logn = LastResortLog.Count;
+            PadTo(s, sa.Length, sa);
+            bool need = LastResort != lr;
+            LastResort = lr; if (LastResortLog.Count > logn) LastResortLog.RemoveRange(logn, LastResortLog.Count - logn);
+            return need;
+        }
+
+        /// <summary>{VENT} + tramo si el tramo empieza por un solo {VENT} y cabe; si no, null.</summary>
+        static byte[] WithExtraVent(byte[] s, byte[] sa)
+        {
+            if (s.Length == 0 || s[0] != 0x08 || (s.Length > 1 && s[1] == 0x08) || s.Length + 1 > sa.Length) return null;
+            byte[] s2 = new byte[s.Length + 1]; s2[0] = 0x08; Array.Copy(s, 0, s2, 1, s.Length);
+            return s2;
+        }
+
+        /// <summary>{PAG} que no se han podido dejar en su sitio (la traduccion de esa pagina es mas larga).</summary>
+        public static int UnanchoredPages;
+        static void Note() { if (!PageFallbackLog.Contains(Current)) PageFallbackLog.Add(Current); }
+
+        /// <summary>Posiciones de los {PAG} (0x11) que son codigo (no argumento ni segundo byte de una letra).</summary>
+        static List<int> PageCuts(byte[] b)
+        {
+            List<int> r = new List<int>();
+            for (int i = 0; i < b.Length; i++)
+            {
+                byte x = b[i];
+                if (Lead(x)) { i++; continue; }
+                int n = ArgCount(x); if (n > 0) { i += n; continue; }
+                if (x == 0x11) r.Add(i);
+            }
+            return r;
         }
 
         /// <summary>Ancho maximo de una linea de dialogo en caracteres (el original nunca pasa de 31).</summary>
@@ -253,6 +387,16 @@ namespace AzTool
 
         /// <summary>Una linea de un texto codificado: [Start, End) sin el byte que la termina.</summary>
         public class Line { public int Start, End, Width; public bool Choice; public byte Term; }
+
+        /// <summary>El relleno de espacios nunca pasa de esta columna: si el motor encuentra un espacio en la columna 30-31,
+        /// salta de linea solo (el original casi nunca tiene espacios ahi) y aparece una linea de mas que empuja el texto
+        /// y descuadra el cursor de las opciones.</summary>
+        public const int PadMax = 29;
+
+        /// <summary>Veces que el relleno tuvo que usar el ultimo recurso (para el informe).</summary>
+        public static int LastResort;
+        public static string Current = "";
+        public static List<string> LastResortLog = new List<string>();
 
         /// <summary>Lineas por ventana de dialogo.</summary>
         public const int MaxLines = 3;
@@ -339,7 +483,7 @@ namespace AzTool
                 // las opciones nunca se rellenan: en el original no llevan espacios detras y el juego
                 // cuenta el relleno como parte de la opcion (ventana desbordada: cuelgue del hipodromo)
                 if (L[k].Choice) cap[k] = L[k].Width;
-                else cap[k] = MaxLine;
+                else cap[k] = PadMax;
                 // una linea vacia de texto (solo codigos) no se rellena: no anadir lineas visibles nuevas
                 if (!L[k].Choice && L[k].Width == 0) cap[k] = 0;
             }
@@ -353,20 +497,28 @@ namespace AzTool
             // 2) lineas en blanco nuevas (salto + espacios) al final de las ventanas con menos de MaxLines lineas.
             //    Solo en ventanas nuevas (inicio, tras {VENT} o fin de mensaje) y sin opciones.
             List<int>[] extra = new List<int>[L.Count];
-            for (int a1 = L.Count - 1; a1 >= 0 && rem >= 3; )
+            for (int a1 = L.Count - 1; a1 >= 0 && rem >= 1; )
             {
                 int a0 = a1; while (a0 > 0 && L[a0 - 1].Term == 0x0A) a0--;
                 bool fresh = a0 == 0 || L[a0 - 1].Term == 0x08 || L[a0 - 1].Term == 0x01;
                 int used = 0; bool choice = false;
                 for (int k = a0; k <= a1; k++) { if (L[k].Width > 0) used++; if (L[k].Choice) choice = true; }
                 int last = -1; for (int k = a1; k >= a0; k--) if (L[k].Width > 0) { last = k; break; }
-                if (fresh && !choice && last >= 0)
-                    for (int n = used; n < MaxLines && rem >= 3; n++)
+                if (!choice && last >= 0 && used < MaxLines)
+                {
+                    // m lineas nuevas (1 byte de salto + 2 por espacio): se elige m para gastar exactamente rem
+                    int slots = MaxLines - used, m = -1;
+                    for (int t = 1; t <= slots; t++) if (rem - t >= 0 && ((rem - t) & 1) == 0 && (rem - t) / 2 <= t * PadMax) { m = t; break; }
+                    if (m < 0 && rem > slots * (1 + 2 * PadMax)) m = slots;          // no basta: se llenan todas
+                    if (m < 0) for (int t = slots; t >= 1; t--) if (rem - t >= 0) { m = t; break; }
+                    if (m > 0)
                     {
-                        int sp = Math.Min(MaxLine, (rem - 1) / 2);
+                        int spaces = Math.Min((rem - m) / 2, m * PadMax);
                         if (extra[last] == null) extra[last] = new List<int>();
-                        extra[last].Add(sp); rem -= 1 + sp * 2;
+                        for (int t = 0; t < m; t++) { int sp = spaces / m + (t < spaces % m ? 1 : 0); extra[last].Add(sp); }
+                        rem -= m + spaces * 2;
                     }
+                }
                 a1 = a0 - 1;
             }
             // 3) un {VENT} extra tras cada {PAG}{VENT} (el original ya usa {VENT}{VENT}), como mucho uno por sitio
@@ -376,7 +528,7 @@ namespace AzTool
                 if (Lead(enc[i])) { i++; continue; }
                 int n = ArgCount(enc[i]); if (n > 0) { i += n; continue; }
                 if (enc[i] == 0x11 && enc[i + 1] == 0x08)
-                { ventAt.Add(i + 2); rem--; }
+                { ventAt.Add(i + 2); rem--; if (rem > 0) { ventAt.Add(i + 2); rem--; } }
             }
             // 4) ultimo recurso: espacios en la ultima linea de texto aunque se pase del ancho
             int target = -1;
@@ -392,26 +544,26 @@ namespace AzTool
                     for (int c = 0; c < ch.Count && rem >= 2; c++)
                     {
                         if ((pass == 0) == (c == ch.Count - 1)) continue;
-                        int k = ch[c], lim = c < ow.Count ? Math.Min(ow[c], MaxLine) : L[k].Width;
+                        int k = ch[c], lim = c < ow.Count ? Math.Min(ow[c], PadMax) : L[k].Width;
                         while (rem >= 2 && L[k].Width + add[k] < lim) { add[k]++; rem -= 2; }
                     }
             }
             if (target < 0) target = 0;
-            if (rem >= 2) { add[target] += rem / 2; rem -= (rem / 2) * 2; }
+            if (rem >= 2) { LastResort++; LastResortLog.Add(Current + "\t" + rem); add[target] += rem / 2; rem -= (rem / 2) * 2; }
             int oddLine = target;      // byte impar suelto (0x20): en una linea que aun tenga sitio
             for (int k = L.Count - 1; k >= 0; k--)
-                if (!L[k].Choice && L[k].Width > 0 && L[k].Width + add[k] < MaxLine) { oddLine = k; break; }
+                if (!L[k].Choice && L[k].Width > 0 && L[k].Width + add[k] < PadMax) { oddLine = k; break; }
             List<byte> o = new List<byte>(len);
             int pos = 0;
             for (int k = 0; k < L.Count; k++)
             {
-                for (; pos < L[k].End; pos++) { o.Add(enc[pos]); if (ventAt.Contains(pos + 1)) o.Add(0x08); }
+                for (; pos < L[k].End; pos++) { o.Add(enc[pos]); foreach (int va in ventAt) if (va == pos + 1) o.Add(0x08); }
                 for (int s = 0; s < add[k]; s++) { o.Add(0x81); o.Add(0x40); }
                 if (extra[k] != null)
                     foreach (int sp in extra[k]) { o.Add(0x0A); for (int s = 0; s < sp; s++) { o.Add(0x81); o.Add(0x40); } }
-                if (rem == 1 && k == oddLine) { o.Add(0x20); rem = 0; }
+                if (rem == 1 && k == oddLine) { o.Add(0x20); rem = 0; LastResortLog.Add(Current + "\timpar"); }
             }
-            for (; pos < enc.Length; pos++) { o.Add(enc[pos]); if (ventAt.Contains(pos + 1)) o.Add(0x08); }
+            for (; pos < enc.Length; pos++) { o.Add(enc[pos]); foreach (int va in ventAt) if (va == pos + 1) o.Add(0x08); }
             return o.ToArray();
         }
 
